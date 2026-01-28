@@ -1,5 +1,29 @@
-# After latest release come out development will continue when next minecraft version comes out
-# for fabric 1.21.10 for now but more versions will come soon
-works with lunar and feather client press I for gui also do .login <username> if you are on lunar or feather
-# When next version released you have to pay 10 bucks for username
-join https://discord.gg/RQJneqdAWg or https://discord.navine.dev
+## 📦 Development Status
+
+After the latest release, development will continue once the next Minecraft version is available.
+
+## 🧵 Supported Versions
+- **Fabric 1.21.10** (current)
+- More versions coming soon
+
+## 💻 Client Compatibility
+Works with:
+- **Lunar Client**
+- **Feather Client**
+
+### Controls
+- Press **`I`** to open the GUI
+- Use **`.login <username>`** when playing on Lunar or Feather
+
+## 💰 Pricing Notice
+When the next version is released, registering or changing a username will cost **$10**.
+
+## 🎥 YouTubers & Testers
+If you are a YouTuber interested in testing the client, please join the Discord server.
+
+**Requirements:**
+- 1,000+ subscribers
+
+## 🔗 Discord
+- https://discord.gg/RQJneqdAWg  
+- https://discord.navine.dev
