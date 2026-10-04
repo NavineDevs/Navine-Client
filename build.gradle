@@ -1,0 +1,177 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+def targetName = gradle.ext.has('navine_target')
+        ? gradle.ext.navine_target.toString()
+        : (findProperty('target') ?: findProperty('navine_target') ?: '26.1.2').toString()
+
+def clientBrand = (findProperty('brand') ?: findProperty('client_brand') ?: 'navine').toString().toLowerCase()
+if (clientBrand != 'navine' && clientBrand != 'navuryx') {
+    throw new GradleException("Unknown brand '${clientBrand}'. Use -Pbrand=navine or -Pbrand=navuryx")
+}
+
+def prop = { String key, String fallback ->
+    if (gradle.ext.has(key)) {
+        return gradle.ext.get(key).toString()
+    }
+    def versionFile = file("versions/${targetName}.properties")
+    if (versionFile.exists()) {
+        def loaded = new Properties()
+        versionFile.withInputStream { loaded.load(it) }
+        if (loaded.getProperty(key)) {
+            return loaded.getProperty(key)
+        }
+    }
+    if (project.hasProperty(key)) {
+        return project.property(key).toString()
+    }
+    return fallback
+}
+
+def mcVersion = prop('minecraft_version', '26.1.2')
+def loaderVer = prop('loader_version', project.findProperty('loader_version')?.toString() ?: '0.19.3')
+def fabricApiVer = prop('fabric_api_version', project.findProperty('fabric_api_version')?.toString() ?: '0.150.0+26.1.2')
+def javaVer = prop('java_version', '25').toInteger()
+def mcDepends = prop('minecraft_depends', '>=26.1')
+def archiveSuffix = prop('archives_suffix', mcVersion)
+
+def modId = clientBrand == 'navuryx' ? 'navuryx-client' : 'navine-client'
+def modName = clientBrand == 'navuryx' ? 'Navuryx Client' : 'Navine Client'
+def archivePrefix = clientBrand == 'navuryx' ? 'Navuryx-Client' : 'Navine-Client'
+
+version = project.mod_version
+group = project.maven_group
+base {
+    archivesName = "${archivePrefix}-${archiveSuffix}"
+}
+
+println "${modName} target: ${targetName} (Minecraft ${mcVersion}, Fabric API ${fabricApiVer}, brand ${clientBrand})"
+
+repositories {
+    maven { url 'https://maven.terraformersmc.com/releases/' }
+    maven { url 'https://maven.cafeteria.dev/releases/' }
+    maven { url 'https://jitpack.io' }
+    mavenCentral()
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['com/main/java']
+        }
+        resources {
+            srcDirs = ['.']
+            include 'fabric.mod.json'
+            include 'navine-client.mixins.json'
+            include 'assets/**'
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${mcVersion}"
+    implementation "net.fabricmc:fabric-loader:${loaderVer}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabricApiVer}"
+    include name: 'java-discord-rpc-2.0.2'
+    implementation name: 'java-discord-rpc-2.0.2'
+    include name: 'discord-rpc-release-v3.4.0'
+    implementation name: 'discord-rpc-release-v3.4.0'
+    include 'net.java.dev.jna:jna:5.15.0'
+    implementation 'net.java.dev.jna:jna:5.15.0'
+    include 'net.dv8tion:JDA:5.1.0'
+    implementation 'net.dv8tion:JDA:5.1.0'
+    include 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    include 'com.squareup.okio:okio:3.6.0'
+    implementation 'com.squareup.okio:okio:3.6.0'
+    include 'com.google.code.gson:gson:2.10.1'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    include 'javazoom:jlayer:1.0.1'
+    implementation 'javazoom:jlayer:1.0.1'
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'minecraft_depends', mcDepends
+    inputs.property 'minecraft_version', mcVersion
+    inputs.property 'mod_id', modId
+    inputs.property 'mod_name', modName
+    inputs.property 'client_brand', clientBrand
+    filteringCharset 'UTF-8'
+
+    filesMatching('fabric.mod.json') {
+        expand([
+                version          : project.version,
+                minecraft_depends: mcDepends,
+                minecraft_version: mcVersion,
+                mod_id           : modId,
+                mod_name         : modName,
+                client_brand     : clientBrand
+        ])
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = javaVer
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.toVersion(javaVer)
+    targetCompatibility = JavaVersion.toVersion(javaVer)
+}
+
+jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    destinationDirectory = layout.buildDirectory.dir('libs')
+    archiveFileName = "${archivePrefix}-${archiveSuffix}.jar"
+}
+
+tasks.register('deploy', Copy) {
+    dependsOn jar
+    from jar.archiveFile
+    into file('C:/Users/hitbo/curseforge/minecraft/Instances/navine-client (1)/mods')
+    onlyIf { clientBrand == 'navine' }
+    doFirst {
+        def modsDir = file('C:/Users/hitbo/curseforge/minecraft/Instances/navine-client (1)/mods')
+        if (modsDir.exists()) {
+            modsDir.eachFileMatch(~/Navine-Client.*\.jar/) { it.delete() }
+        }
+    }
+}
+
+tasks.register('deployOutput', Copy) {
+    dependsOn jar
+    from jar.archiveFile
+    into file('C:/Users/hitbo/Downloads/output')
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+tasks.register('listTargets') {
+    doLast {
+        println 'Minecraft targets:'
+        file('versions').listFiles()
+                .findAll { it.name.endsWith('.properties') }
+                .collect { it.name.replace('.properties', '') }
+                .sort()
+                .each { id ->
+                    def p = new Properties()
+                    file("versions/${id}.properties").withInputStream { p.load(it) }
+                    def ok = !'false'.equalsIgnoreCase(p.getProperty('supported', 'true'))
+                    def status = ok ? 'supported' : 'WIP'
+                    println "  - ${id}  [${status}]  MC ${p.getProperty('minecraft_version')}  runs as ${p.getProperty('minecraft_depends')}"
+                }
+        println "Active: ${targetName}, brand: ${clientBrand}"
+    }
+}
+
+tasks.named('build') {
+    finalizedBy 'deployOutput'
+    if (clientBrand == 'navine') {
+        finalizedBy 'deploy'
+    }
+}

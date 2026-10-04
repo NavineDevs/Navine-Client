@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${version}",
+  "name": "${mod_name}",
+  "description": "Standalone utility client for Fabric (Minecraft ${minecraft_version})",
+  "authors": [
+    "Navine Team"
+  ],
+  "contact": {
+    "homepage": "https://navine-client.com/",
+    "sources": "https://github.com/navinedevs/navine-client"
+  },
+  "license": "MIT",
+  "icon": "assets/navine/icon.png",
+  "environment": "client",
+  "mixins": [
+    "navine-client.mixins.json"
+  ],
+  "entrypoints": {
+    "client": [
+      "nv.navineclient.NavineClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "${minecraft_depends}",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "custom": {
+    "navine:built_for": "${minecraft_version}",
+    "navine:brand": "${client_brand}"
+  }
+}

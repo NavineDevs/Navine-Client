@@ -1,0 +1,62 @@
+pluginManagement {
+    repositories {
+        maven {
+            name = 'Fabric'
+            url = 'https://maven.fabricmc.net/'
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+def ALIASES = [
+        '26_1'     : '26.1',
+        '26_1_1'   : '26.1.1',
+        '26_1_2'   : '26.1.2',
+        '26_2'     : '26.2',
+        '26_3'     : '26.3',
+        '1_21_11'  : '1.21.11',
+]
+
+def resolveTarget = {
+    def fromCli = settings.startParameter.projectProperties.get('target')
+    def raw
+    if (fromCli != null && !fromCli.toString().trim().isEmpty()) {
+        raw = fromCli.toString().trim()
+    } else if (settings.hasProperty('target')) {
+        raw = settings.target.toString()
+    } else {
+        def gp = new Properties()
+        def gpf = file('gradle.properties')
+        if (gpf.exists()) {
+            gpf.withInputStream { gp.load(it) }
+        }
+        raw = gp.getProperty('navine_target', '26.1.2')
+    }
+    return ALIASES.containsKey(raw) ? ALIASES[raw] : raw
+}
+
+def target = resolveTarget()
+def versionPropsFile = file("versions/${target}.properties")
+if (!versionPropsFile.exists()) {
+    def available = file('versions').exists()
+            ? file('versions').listFiles().findAll { it.name.endsWith('.properties') }
+            .collect { it.name - '.properties' }.sort()
+            : []
+    throw new GradleException("Unknown Minecraft target '${target}'. Available: ${available}\n" +
+            "Tip (PowerShell): quote dotted targets, e.g. \"-Ptarget=26.1.2\"")
+}
+
+def versionProps = new Properties()
+versionPropsFile.withInputStream { versionProps.load(it) }
+if ('false'.equalsIgnoreCase(versionProps.getProperty('supported', 'true'))) {
+    def note = versionProps.getProperty('note', 'This target is not supported yet.')
+    throw new GradleException("Target '${target}' is not buildable yet.\n${note}")
+}
+
+gradle.ext.navine_target = target
+versionProps.each { key, value ->
+    gradle.ext.set(key.toString(), value.toString())
+}
+
+rootProject.name = 'NavineClient'
